@@ -1,5 +1,3 @@
-
-
 // ============================================
 // index.js - الملف الرئيسي
 // ============================================
@@ -13,6 +11,9 @@ const config = require('./config');
 
 const logger = pino({ level: 'silent' });
 let lastReminderTime = Date.now();
+// Standard User-Agent to avoid blocking
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36';
+
 
 // Context info للإعلان
 const getInstagramContext = () => ({
@@ -37,7 +38,7 @@ async function searchAPKPure(appName) {
                 region: 'en'
             },
             headers: {
-                'User-Agent': 'APKPure/3.19.3',
+                'User-Agent': BROWSER_USER_AGENT, // Fix: Use standard browser User-Agent
                 'Accept': 'application/json'
             },
             timeout: config.api.timeout
@@ -58,7 +59,7 @@ async function getAppDetails(packageName) {
     try {
         const response = await axios.get(`https://api.apkpure.ai/api/v1/app/${packageName}`, {
             headers: {
-                'User-Agent': 'APKPure/3.19.3',
+                'User-Agent': BROWSER_USER_AGENT, // Fix: Use standard browser User-Agent
                 'Accept': 'application/json'
             },
             timeout: config.api.timeout
@@ -79,9 +80,9 @@ async function downloadFile(url, fileName) {
             responseType: 'arraybuffer',
             maxContentLength: config.api.maxFileSize,
             maxBodyLength: config.api.maxFileSize,
-            timeout: 600000,
+            timeout: 600000, // 10 minutes
             headers: {
-                'User-Agent': 'APKPure/3.19.3'
+                'User-Agent': BROWSER_USER_AGENT // Fix: Use standard browser User-Agent
             }
         });
 
@@ -137,10 +138,10 @@ async function handleAPKRequest(sock, message, appName) {
                 await sock.sendMessage(sender, {
                     image: Buffer.from(iconData.data),
                     caption: `📱 *${app.name}*\n` +
-                            `📦 ${app.package}\n` +
-                            `📊 ${details.version || 'N/A'}\n` +
-                            `💾 ${details.size || 'N/A'}\n\n` +
-                            `⏳ جاري التحميل...`,
+                        `📦 ${app.package}\n` +
+                        `📊 ${details.version || 'N/A'}\n` +
+                        `💾 ${details.size || 'N/A'}\n\n` +
+                        `⏳ جاري التحميل...`,
                     contextInfo: getInstagramContext()
                 });
             } catch (e) {
@@ -186,9 +187,9 @@ async function handleAPKRequest(sock, message, appName) {
                     fileName: obbName,
                     mimetype: 'application/octet-stream',
                     caption: `📦 *OBB File*\n` +
-                            `💾 ${(obbStats.size / 1024 / 1024).toFixed(2)} MB\n\n` +
-                            `📁 ضعه في:\nAndroid/obb/${app.package}/\n\n` +
-                            `📸 @yxx0p`,
+                        `💾 ${(obbStats.size / 1024 / 1024).toFixed(2)} MB\n\n` +
+                        `📁 ضعه في:\nAndroid/obb/${app.package}/\n\n` +
+                        `📸 @yxx0p`,
                     contextInfo: getInstagramContext()
                 });
 
@@ -249,7 +250,7 @@ async function connectToWhatsApp() {
                 : null;
 
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut &&
-                                   statusCode !== DisconnectReason.connectionReplaced;
+                statusCode !== DisconnectReason.connectionReplaced;
 
             if (shouldReconnect) {
                 setTimeout(() => connectToWhatsApp(), 5000);
